@@ -35,6 +35,71 @@ export enum AutoOrientMode {
   On,
 }
 
+export enum EffectValueType {
+  Number = 0,
+  Color = 2,
+  Boolean = 7,
+}
+
+export type EffectValue = {
+  /** Effect value type */
+  ty: EffectValueType;
+  /** Effect value index */
+  ix: number;
+  /** Name */
+  nm: string;
+  /** ??? */
+  mn: string;
+  /** Effect value */
+  v: Value;
+};
+
+export enum EffectType {
+  DropShadow = 25,
+}
+
+export type Effect = {
+  /** Effect Index. */
+  ix: number;
+  /** After Effect's Name. */
+  nm: string;
+  /** Effect type. */
+  ty: EffectType;
+  /** Effect parameters. [] */
+  ef: EffectValue[];
+  /** ??? */
+  np: number;
+  /** ??? */
+  mn: string;
+  /** ??? */
+  en: number;
+};
+
+export const enum MaskMode {
+  No = 'n',
+  Add = 'a',
+  Subtract = 's',
+  Intersect = 'i',
+  Lighten = 'l',
+  Darken = 'd',
+  Difference = 'f',
+}
+
+export type Mask = {
+  /** Inverted Mask flag. */
+  inv: boolean;
+  /** Mask name. */
+  nm?: string;
+  /** Mask vertices. */
+  pt: ShapeProperty;
+  /** Mask opacity. */
+  o: Value;
+  /** Mask mode. */
+  mode: MaskMode;
+  /** Dilate. */
+  x: Value;
+};
+
 export type Layer = {
   /** 3d layer flag */
   ddd?: Layer3DMode;
@@ -67,11 +132,16 @@ export type Layer = {
   /** Whether the layer has some masks applied */
   hasMask?: boolean;
   /** List of Masks */
-  masksProperties?: Array<any>;
+  masksProperties?: Mask[];
   /** List of Effects */
-  ef?: Array<any>;
+  ef?: Effect[];
   /** matte_target */
   td?: number;
+  /**
+   * Enable motion blur
+   * (only has effect if Animation.mb is set)
+   */
+  mb?: boolean;
 };
 
 export enum LayerType {
@@ -112,6 +182,31 @@ export type Transform = {
 export type PrecompLayer = Layer & {
   /** Reference ID (in assets list) */
   refId: string;
+};
+
+export type AudioProperties = {
+  /** Audio levels. [number, number] */
+  lv: Value;
+};
+
+export type AudioLayer = Omit<Layer, 'ks'> & {
+  ty: LayerType.audio;
+  /** Reference ID (in assets list) */
+  refId: string;
+  /** Audio Properties. */
+  au: AudioProperties;
+  /** File format? */
+  cl: 'mp3';
+};
+
+export type VideoLayer = Layer & {
+  ty: LayerType.video;
+  /** Reference ID (in assets list) */
+  refId: string;
+  /** ??? Audio Properties? */
+  ao: number;
+  /** File format? */
+  cl: string;
 };
 
 export type ShapeLayer = Layer & {
@@ -506,7 +601,7 @@ export type FillShape = ShapeElement & {
   r: FillRule;
 };
 
-export type Asset = ImageAsset | PrecompAsset;
+export type Asset = ImageAsset | PrecompAsset | AudioAsset | VideoAsset;
 
 interface AssetInterface {
   /** Id used to reference in a precomp layer */
@@ -524,6 +619,32 @@ export type ImageAsset = AssetInterface & {
   w: number;
   /** Height */
   h: number;
+};
+
+export type VideoAsset = AssetInterface & {
+  /** URL base */
+  u: string;
+  /** Path relative to URL base (asset.u) */
+  p: string;
+  /** [non standard]: URL */
+  _p: string;
+  /** Width */
+  w: number;
+  /** Height */
+  h: number;
+  /** ??? (usually 0) */
+  e: number;
+};
+
+export type AudioAsset = AssetInterface & {
+  /** URL base */
+  u: string;
+  /** Path relative to URL base (asset.u) */
+  p: string;
+  /** [non standard]: URL */
+  _p: string;
+  /** ??? (usually 0) */
+  e: number;
 };
 
 export type PrecompAsset = AssetInterface & {
@@ -579,7 +700,7 @@ export type Chars = {
   data: CharData;
 };
 
-export type LottieData = {
+export type Animation = {
   /** List of Composition Layers. */
   layers: Layer[];
   /** Bodymovin Version. */
@@ -604,4 +725,40 @@ export type LottieData = {
   fonts?: FontList;
   /** Source chars for text layers.  */
   chars?: Chars[];
+  /** Motion blur setting. (Skottie) */
+  mb?: MotionBlurSettings;
+};
+
+/**
+ * Motion Blur Settings
+ * Enable motion blur for a layer by setting `layer.mb = true`
+ */
+export type MotionBlurSettings = {
+  /**
+   * Shutter Angle
+   * AE default: 180
+   * Skottie default: 0 ([0, 720])
+   */
+  sa?: number;
+  /**
+   * Shutter Phase
+   * AE default: -90
+   * Skottie default: 0 ([-360, 360])
+   */
+  sp?: number;
+  /**
+   * Samples Per Frame
+   * AE default: 16
+   * Skottie default: 1 ([1, 64])
+   */
+  spf?: number;
+  /**
+   * (not yet supported in any known Lottie player)
+   * Adaptive Sample Limit
+   * 2D layer motion automatically uses more samples per frame
+   * when needed, up to the value specified by Adaptive Sample
+   * Limit.
+   * AE default: 128
+   */
+  asl?: number;
 };
