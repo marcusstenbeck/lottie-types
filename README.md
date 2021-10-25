@@ -10,3 +10,7 @@ Many thanks to @bodymovin and @mattbas! Your work has helped me figure things ou
 Bodymovin JSON docs: https://github.com/bodymovin/bodymovin/tree/master/docs/json
 
 python-lottie docs: https://mattbas.gitlab.io/python-lottie/group__Lottie.html#details
+
+LottieFiles lottie-docs: https://github.com/LottieFiles/lottie-docs
+
+Lottie Animation Community repos: https://github.com/lottie-animation-community/
