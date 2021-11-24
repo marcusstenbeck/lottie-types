@@ -38,6 +38,7 @@ export enum AutoOrientMode {
 export enum EffectValueType {
   Number = 0,
   Color = 2,
+  MultiDimensional = 3,
   Boolean = 7,
 }
 
@@ -55,6 +56,7 @@ export type EffectValue = {
 };
 
 export enum EffectType {
+  Transform = 5,
   DropShadow = 25,
 }
 
@@ -69,7 +71,7 @@ export type Effect = {
   ef: EffectValue[];
   /** ??? */
   np: number;
-  /** ??? */
+  /** Match name (for expressions) */
   mn: string;
   /** ??? */
   en: number;
@@ -148,7 +150,7 @@ export enum LayerType {
   precomp,
   solid,
   still,
-  nullLayer,
+  null,
   shape,
   text,
   audio,
@@ -214,7 +216,12 @@ export type ShapeLayer = Layer & {
   shapes: ShapeElement[];
 };
 
+export interface NullLayer extends Layer {
+  ty: LayerType.null;
+}
+
 export type SolidColorLayer = Layer & {
+  ty: LayerType.solid;
   /** Color of the layer as a #rrggbb hex. */
   sc: string;
   /** Height of the layer. */
@@ -224,6 +231,7 @@ export type SolidColorLayer = Layer & {
 };
 
 export type ImageLayer = Layer & {
+  ty: LayerType.still;
   /** id pointing to the source image defined on 'assets' object. */
   refId: string;
 };
@@ -269,17 +277,25 @@ export enum TextJustify {
   Center,
 }
 
+export enum VerticalJustify {
+  Top = 0,
+  Center = 1,
+  Bottom = 2,
+}
+
+export type TextBoxSize = [number, number];
+
 export type TextDocument = {
   /** Font family. */
   f: string;
   /** Text color. */
-  fc: number[];
+  fc: Color4;
   /** Font Size. */
   s: number;
   /** Line height when wrapping. */
   lh: number;
   /** Size of the box containing the text */
-  sz?: number[];
+  sz?: TextBoxSize;
   /** Text. */
   t: string;
   /** Text alignment. */
@@ -292,6 +308,8 @@ export type TextDocument = {
   ps: number[];
   /** Tracking */
   tr: number;
+  /** Vertical justification. (Skottie) */
+  vj?: VerticalJustify;
 };
 
 export type TextDataKeyframe = {
@@ -308,23 +326,93 @@ export type TextDocumentData = {
 export type TextMoreOptions = any;
 export type MaskedPath = any;
 
+export const enum RangeSelectorDomain {
+  Characters = 1,
+  CharactersExcludingSpaces,
+  Words,
+  Lines,
+}
+
+export const enum RangeSelectorShape {
+  Square = 1,
+  RampUp,
+  RampDown,
+  Triangle,
+  Round,
+  Smooth,
+}
+
+export const enum RangeSelectorUnits {
+  Percentage = 1,
+  Index,
+}
+
+export const enum RangeSelectorMode {
+  Add = 1,
+  Subtract,
+  Intersect,
+  Min,
+  Max,
+  Difference,
+}
+
 export type RangeSelector = {
   /** number/enum */
   t: number;
-  /** ??? */
-  xe: Value;
-  /** ??? */
-  ne: Value;
-  /** ??? */
-  a: Value;
-  /** number/enum */
-  b: number;
   /** number/enum */
   rn: number;
-  /** number/enum */
-  sh: number;
-  /** number/enum */
-  r: number;
+  /**
+   * Domain
+   *
+   * 1. Characters
+   * 2. Characters exluding spaces
+   * 3. Words
+   * 4. Lines
+   */
+  b: RangeSelectorDomain;
+  /**
+   * Shape
+   *
+   * 1. Square
+   * 2. Ramp up
+   * 3. Ramp down
+   * 4. Triangle
+   * 5. Round
+   * 6. Smooth
+   */
+  sh: RangeSelectorShape;
+  /**
+   * Mode
+   *
+   * 1. Add
+   * 2. Subtract (Unsupported)
+   * 3. Intersect (Unsupported)
+   * 4. Min (Unsupported)
+   * 5. Max (Unsupported)
+   * 6. Difference (Unsupported)
+   */
+  m?: RangeSelectorMode;
+  /** Optional square "smoothness" prop. */
+  sm: Value;
+  /**
+   * Units
+   *
+   * 1. Percentage
+   * 2. Index
+   */
+  r: RangeSelectorUnits;
+  /** Start */
+  s?: Value;
+  /** End */
+  e?: Value;
+  /** Offset */
+  o: Value;
+  /** Amount */
+  a: Value;
+  /** Ease high */
+  xe: Value;
+  /** Ease low */
+  ne: Value;
 };
 
 export type TextAnimator = {
@@ -369,7 +457,7 @@ export type Matrix4 = [
   number,
   number,
   number,
-  number
+  number,
 ];
 
 export type Matrix3 = [
@@ -383,7 +471,7 @@ export type Matrix3 = [
 
   number,
   number,
-  number
+  number,
 ];
 
 export type Node3D = {
@@ -423,20 +511,20 @@ export type ShapeElement = {
   /** Property index. */
   cix: number;
 
-  /** ??? */
-  bm: number;
+  /** Blending Mode */
+  bm: BlendMode;
 };
 
 export type GroupShapeElement = ShapeElement & {
-  /** Group number of properties. */
+  /** Number of properties. */
   np: number;
-  /** Group list of items.  */
+  /** List of ShapeElement.  */
   it: Array<ShapeElement>;
 };
 
 export type Bezier = {
   /** Closed property of shape. */
-  c: boolean;
+  c?: boolean;
   /** Cubic bezier handles for the segments before each vertex. */
   i: number[][];
   /** Cubic bezier handles for the segments after each vertex. */
@@ -535,10 +623,10 @@ export type OffsetKeyframe = {
   i?: KeyframeBezierHandle;
   /** Bezier curve easing out value. */
   o?: KeyframeBezierHandle;
-  /** [0-1] Jump to the end value. */
+  /** [0-1] Jump to value. */
   h?: number;
   /** Start value of keyframe segment. */
-  s: number[];
+  s: number | number[];
   /** End value of keyframe segment. */
   e?: number[];
   /** In Spatial Tangent. Only for spatial properties. */
@@ -574,6 +662,8 @@ export type TransformShape = ShapeElement & {
   /** Transform Skew Axis. */
   sa: Value;
 };
+
+export type Color4 = [number, number, number, number];
 
 export type ColorValue = {
   /**
@@ -700,12 +790,15 @@ export type Chars = {
   data: CharData;
 };
 
+export interface Composition {
+  /** List of layers. */
+  layers?: Layer[];
+}
+
 export type Animation = {
-  /** List of Composition Layers. */
-  layers: Layer[];
   /** Bodymovin Version. */
   v: string;
-  /** Frames per second. */
+  /** Frames per second. Positive integer. */
   fr: number;
   /** The time when the composition work area begins, in frames. */
   ip: number;
@@ -715,12 +808,14 @@ export type Animation = {
   w: number;
   /** Composition Height. */
   h: number;
+  /** List of Composition Layers. */
+  layers?: Layer[];
   /** Composition name. */
   nm?: string;
   /** [0-1] Composition has 3-D layers. */
   ddd?: number;
   /** source items that can be used in multiple places. */
-  assets: Asset[];
+  assets?: Asset[];
   /** Available fonts. */
   fonts?: FontList;
   /** Source chars for text layers.  */
