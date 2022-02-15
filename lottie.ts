@@ -58,6 +58,7 @@ export type EffectValue = {
 export enum EffectType {
   Transform = 5,
   DropShadow = 25,
+  GaussianBlur = 29,
 }
 
 export type Effect = {
@@ -102,7 +103,11 @@ export type Mask = {
   x: Value;
 };
 
-export type Layer = {
+interface LayerBase {
+  ty: LayerType;
+}
+
+export interface VisualLayer extends LayerBase {
   /** 3d layer flag */
   ddd?: Layer3DMode;
   /** Hidden layer */
@@ -144,7 +149,14 @@ export type Layer = {
    * (only has effect if Animation.mb is set)
    */
   mb?: boolean;
-};
+}
+
+export type Layer =
+  | NullLayer
+  | ImageLayer
+  | VideoLayer
+  | AudioLayer
+  | TextLayer;
 
 export enum LayerType {
   precomp,
@@ -191,34 +203,10 @@ export type AudioProperties = {
   lv: Value;
 };
 
-export type AudioLayer = Omit<Layer, 'ks'> & {
-  ty: LayerType.audio;
-  /** Reference ID (in assets list) */
-  refId: string;
-  /** Audio Properties. */
-  au: AudioProperties;
-  /** File format? */
-  cl: 'mp3';
-};
-
-export type VideoLayer = Layer & {
-  ty: LayerType.video;
-  /** Reference ID (in assets list) */
-  refId: string;
-  /** ??? Audio Properties? */
-  ao: number;
-  /** File format? */
-  cl: string;
-};
-
 export type ShapeLayer = Layer & {
   /** Shape list of items. */
   shapes: ShapeElement[];
 };
-
-export interface NullLayer extends Layer {
-  ty: LayerType.null;
-}
 
 export type SolidColorLayer = Layer & {
   ty: LayerType.solid;
@@ -230,11 +218,35 @@ export type SolidColorLayer = Layer & {
   sw: number;
 };
 
-export type ImageLayer = Layer & {
-  ty: LayerType.still;
+export interface LayerWithAssetReference extends LayerBase {
   /** id pointing to the source image defined on 'assets' object. */
   refId: string;
-};
+}
+
+export interface ImageLayer extends VisualLayer, LayerWithAssetReference {
+  ty: LayerType.still;
+}
+
+export interface VideoLayer extends VisualLayer, LayerWithAssetReference {
+  ty: LayerType.video;
+  /** ??? Audio Properties? */
+  ao: number;
+  /** File format? */
+  cl: string;
+}
+
+// TODO: AudioLayer is not a visual layer
+export interface AudioLayer extends VisualLayer, LayerWithAssetReference {
+  ty: LayerType.audio;
+  /** Audio Properties. */
+  au: AudioProperties;
+  /** File format? */
+  cl: 'mp3';
+}
+
+export interface NullLayer extends VisualLayer, LayerWithAssetReference {
+  ty: LayerType.null;
+}
 
 export type TextAnimatorDataProperty = {
   /** Transform Anchor Point. */
@@ -431,10 +443,11 @@ export type TextData = {
   p?: MaskedPath;
 };
 
-export type TextLayer = Layer & {
+export interface TextLayer extends VisualLayer {
+  ty: LayerType.text;
   /** Text Data. */
   t: TextData;
-};
+}
 
 export type Point = { x: number; y: number };
 
@@ -533,21 +546,6 @@ export type Bezier = {
   v: number[][];
 };
 
-export type ShapePropKeyframe = {
-  /** Start time of keyframe segment. */
-  t: number;
-  /** Bezier curve easing in value. */
-  i: KeyframeBezierHandle;
-  /** Bezier curve easing out value. */
-  o: KeyframeBezierHandle;
-  /** [0-1] Jump to the end value. */
-  h: number;
-  /** or list of Bezier	Start value of keyframe segment. */
-  s: Bezier;
-  /** or list of Bezier	End value of keyframe segment. */
-  e: Bezier;
-};
-
 export type ShapeProperty = {
   /**
    * Bezier: Non-animated value.
@@ -555,7 +553,7 @@ export type ShapeProperty = {
    */
   k: Bezier | ShapePropKeyframe[];
   /** Property index. */
-  ix: number;
+  ix?: number;
   /** [0-1] Whether it's animated. */
   a?: number;
 };
@@ -616,6 +614,8 @@ export type KeyframeBezierHandle = {
   y: number | number[];
 };
 
+// TODO: Overlap between OffsetKeyframe and ShapePropKeyframe
+
 export type OffsetKeyframe = {
   /** Start time of keyframe segment. */
   t: number;
@@ -635,6 +635,21 @@ export type OffsetKeyframe = {
   to?: number[];
 };
 
+export type ShapePropKeyframe = {
+  /** Start time of keyframe segment. */
+  t: number;
+  /** Bezier curve easing in value. */
+  i: KeyframeBezierHandle;
+  /** Bezier curve easing out value. */
+  o: KeyframeBezierHandle;
+  /** [0-1] Jump to the end value. */
+  h: number;
+  /** or list of Bezier	Start value of keyframe segment. */
+  s: Bezier;
+  /** or list of Bezier	End value of keyframe segment. */
+  e: Bezier;
+};
+
 export type RectShape = ShapeElement & {
   /** After Effect's Direction. */
   d: number;
@@ -645,6 +660,8 @@ export type RectShape = ShapeElement & {
   /** Rect's rounded corners. */
   r: Value;
 };
+
+export type EllipseShape = ShapeElement;
 
 export type TransformShape = ShapeElement & {
   /** Anchor point */
@@ -692,6 +709,7 @@ export type FillShape = ShapeElement & {
 };
 
 export type Asset = ImageAsset | PrecompAsset | AudioAsset | VideoAsset;
+export type MediaAsset = ImageAsset | AudioAsset | VideoAsset;
 
 interface AssetInterface {
   /** Id used to reference in a precomp layer */
@@ -722,7 +740,7 @@ export type VideoAsset = AssetInterface & {
   w: number;
   /** Height */
   h: number;
-  /** ??? (usually 0) */
+  /** isEmbedded "boolean", [0-1] */
   e: number;
 };
 
@@ -733,7 +751,7 @@ export type AudioAsset = AssetInterface & {
   p: string;
   /** [non standard]: URL */
   _p: string;
-  /** ??? (usually 0) */
+  /** isEmbedded "boolean", [0-1] */
   e: number;
 };
 
