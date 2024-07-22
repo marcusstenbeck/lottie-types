@@ -3,7 +3,7 @@ TypeScript definition for the Lottie format. Pull requests and suggestions on im
 
 You can find me on Twitter: https://twitter.com/marcusstenbeck
 
-Many thanks to @bodymovin and @mattbas! Your work has helped me figure things out!
+Many thanks to @bodymovin and @mbasaglia! Your work has helped me figure things out!
 
 ### Lottie File Format Resources
 
